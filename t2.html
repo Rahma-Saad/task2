@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Speech Recognition</title>
+    <script>
+      window.onload = () => {
+        const button = document.getElementById('button');
+        button.addEventListener('click', () => {
+          if (button.style['animation-name'] === 'flash') {
+            recognition.stop();
+            button.style['animation-name'] = 'none';
+            button.innerText = 'تشغيل';
+            content.innerText = '';
+          } else {
+            button.style['animation-name'] = 'flash';
+            button.innerText = 'توقف';
+            recognition.lang = 'ar';
+            recognition.start();
+          }
+        });
+
+        const content = document.getElementById('content');
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = function (event) {
+          let result = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            result += event.results[i][0].transcript;
+          }
+          content.innerText = result;
+        };
+      };
+
+      let isConnectted = false;
+      let port;
+      let writer;
+      var target_id;
+      const enc = new TextEncoder();
+
+      async function onChangespeech() {
+        if (!isConnectted) {
+          alert("you must connect to the usb in order to use this.");
+          return;
+        }
+
+        try {
+          const commandlist = content;
+          const commandSplit = commandlist.split(" ")
+          const command = commandSplit.slice(-1);
+          const computerText = `${command}@`;
+          await writer.write(enc.encode(computerText));
+        } catch (e) {
+          console.log(e);
+        }
+      }
+
+
+
+    async function onConnectUsb() {
+      try {
+        const requestOptions = {
+          // Filter on devices with the Arduino USB vendor ID.
+          filters: [{ usbVendorId: 0x2341 }],
+        };
+
+        // Request an Arduino from the user.
+        port = await navigator.serial.requestPort(requestOptions);
+        await port.open({ baudRate: 115200 });
+        writer = port.writable.getWriter();
+        isConnectted = true;
+      } catch (e) {
+        console.log("err", e);
+      }
+    }
+
+
+
+    </script>
+
+    <style>
+      button {
+        background: yellow;
+        animation-name: none;
+        animation-duration: 3s;
+        animation-iteration-count: infinite;
+      }
+      @keyframes flash {
+        0% {
+          background: red;
+        }
+        50% {
+          background: green;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button id="button">تشغيل</button>
+    <div id="content"></div>
+    <button class = "btn btn-danger btn-block" onclick="onConnectUsb()" id="connect-usb">
+        connect
+    </button>
+  </body>
+</html>
